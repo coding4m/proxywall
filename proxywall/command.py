@@ -101,5 +101,5 @@ def run(cmd, close_fds=True, use_executable=None, use_shell=False, data=None, bi
         cmd_proc.stderr.close()
         return cmd_proc.returncode, std_out, std_err
     except Exception as e:
-        _logger.ex('run cmd[%s] occurs error.', cmd)
+        _logger.ex('''run command['%s'] occurs error.''', cmd)
         raise e
