@@ -40,10 +40,11 @@ def _event_loop(backend, client):
     events = client.events(decode=True, filters={'event': ['start', 'stop', 'pause', 'unpause']})
 
     # now loop containers.
-    _handle_proxy_nodes(backend, _get_containers(client))
+    _handle_containers(backend, _get_containers(client))
     for _ in events:
         # TODO when container destroy, we may lost the opportunity to unregister the container.
-        _handle_proxy_nodes(backend, _get_containers(client))
+        # it may cause performance issue.
+        _handle_containers(backend, _get_containers(client))
 
 
 def _get_containers(client):
@@ -56,60 +57,85 @@ def _get_container(client, container_id):
     return client.inspect_container(container_id)
 
 
-def _handle_proxy_nodes(backend, containers):
-    register_proxy_records = []
-    unregister_proxy_records = []
+def _handle_containers(backend, containers):
+    register_proxy_datas = []
+    unregister_proxy_datas = []
+
     for container in containers:
-        _handle_container(backend, container, register_proxy_records, unregister_proxy_records)
+        _handle_container(backend, container, register_proxy_datas, unregister_proxy_datas)
+
+    for proxy_data in unregister_proxy_datas:
+        _unregister_proxy(backend, proxy_data[0])
+
+    proxy_groups = {}
+    for proxy_data in register_proxy_datas:
+
+        try:
+            proxy_node = ProxyNode(addr=proxy_data[1],
+                                   port=proxy_data[2],
+                                   proto=proxy_data[3],
+                                   network=proxy_data[4],
+                                   weight=proxy_data[5])
+        except:
+            _logger.ex('generate proxy node failed, just ignore it.')
+            continue
+
+        proxy_name = proxy_data[0]
+        if not proxy_groups.get(proxy_name):
+            proxy_groups[proxy_name] = [proxy_node]
+        else:
+            proxy_groups[proxy_name].append(proxy_node)
+
+    for proxy_item in proxy_groups.items():
+        _register_proxy(backend, proxy_item[0], proxy_item[1])
 
 
-def _handle_container(backend, container, register_proxy_records, unregister_proxy_records):
-    container_environments = _jsonselect(container, '.Config .Env') \
-                             | collect(lambda env: env | split(r'=', maxsplit=1)) \
-                             | collect(lambda env: env | as_tuple) \
-                             | as_tuple \
-                             | as_dict
+def _handle_container(backend, container, register_proxy_datas, unregister_proxy_datas):
+    try:
 
-    environment_vhost = _jsonselect(container_environments, '.VHOST')
-    environment_vport = _jsonselect(container_environments, '.VPORT')
-    if not environment_vhost or not environment_vport:
-        return
+        container_environments = _jsonselect(container, '.Config .Env') \
+                                 | collect(lambda env: env | split(r'=', maxsplit=1)) \
+                                 | collect(lambda env: env | as_tuple) \
+                                 | as_tuple \
+                                 | as_dict
 
-    container_status = _jsonselect(container, '.State .Status')
-    if container_status in ['paused', 'exited']:
-        unregister_proxy_records.append(environment_vhost)
-        return
+        proxy_host = _jsonselect(container_environments, '.VHOST')
+        proxy_port = _jsonselect(container_environments, '.VPORT')
+        if not proxy_host or not proxy_port:
+            return
 
-    environment_vnetwork = _jsonselect(container_environments, '.VNETWORK')
-    if not environment_vnetwork:
-        return
+        container_status = _jsonselect(container, '.State .Status')
+        if container_status in ['paused', 'exited']:
+            unregister_proxy_datas.append((proxy_host,))
+            return
 
-    container_network = _jsonselect(container, '.NetworkSettings .Networks .%s'.format(environment_vnetwork))
-    if not container_network:
-        return
+        proxy_network = _jsonselect(container_environments, '.VNETWORK')
+        if not proxy_network:
+            return
 
-    envrionment_vproto = _jsonselect(container_environments, '.VPROTO')
-    environment_vweight = _jsonselect(container_environments, '.VWEIGHT')
+        # it may be occurs error when proxy_network is a malicious word.
+        proxy_addr = _jsonselect(container, '.NetworkSettings .Networks .%s .IPAddress'.format(proxy_network))
+        if not proxy_addr:
+            return
 
-    _register_proxy_nodes(backend, environment_vhost, container_networks)
+        proxy_proto = _jsonselect(container_environments, '.VPROTO')
+        proxy_weight = _jsonselect(container_environments, '.VWEIGHT')
+        register_proxy_datas.append((proxy_host, proxy_addr, proxy_port,
+                                     proxy_proto, proxy_network, proxy_weight,))
+
+    except:
+        _logger.ex('handle container occurs error, just ignore it.')
 
 
 def _jsonselect(obj, selector):
     return jsonselect.select(selector, obj)
 
 
-def _register_proxy_nodes(backend, vhost, container_networks):
-    _logger.w('register container[domain_name=%s] to backend.', vhost)
-
-    namespecs = container_networks \
-                | collect(lambda item: (_jsonselect(item, '.IPAddress'),
-                                        _jsonselect(item, '.GlobalIPv6Address'),)) \
-                | collect(lambda item: ProxyNode(host=item[0], port=item[1])) \
-                | as_list
-
-    backend.register(vhost, namespecs)
+def _register_proxy(backend, name, nodes):
+    _logger.w('register proxy[virtual_host=%s] to backend.', name)
+    backend.register(name, nodes)
 
 
-def _unregister_proxy_nodes(backend, container_domain):
-    _logger.w('unregister container[domain_name=%s] from backend.', container_domain)
-    backend.unregister(container_domain)
+def _unregister_proxy(backend, name):
+    _logger.w('unregister proxy[virtual_host=%s] from backend.', name)
+    backend.unregister(name)

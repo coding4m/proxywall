@@ -20,10 +20,10 @@ class ProxyNode(object):
     _ALLOW_PROXY_PROTOS = ['http', 'https']
     _DEFAULT_PROXY_PROTO = 'http'
 
-    def __init__(self, host=None, port=None, proto=None, network=None, weight=None):
+    def __init__(self, addr=None, port=None, proto=None, network=None, weight=None):
         """
 
-        :param host:
+        :param addr:
         :param port:
         :param ttl:
         :return:
@@ -32,7 +32,7 @@ class ProxyNode(object):
         if proto and proto not in ProxyNode._ALLOW_PROXY_PROTOS:
             raise ValueError('')
 
-        self._host = host
+        self._addr = addr
         self._port = port if isinstance(port, int) else (port | as_int)
         self._proto = proto if proto else ProxyNode._DEFAULT_PROXY_PROTO
         self._network = network
@@ -43,12 +43,12 @@ class ProxyNode(object):
         pass
 
     @property
-    def host(self):
+    def addr(self):
         """
 
         :return:
         """
-        return self._host
+        return self._addr
 
     @property
     def port(self):
@@ -83,12 +83,12 @@ class ProxyNode(object):
         return self._weight
 
     def to_dict(self):
-        return {'host': self._host, 'port': self._port,
+        return {'addr': self._addr, 'port': self._port,
                 'proto': self._proto, 'network': self._network, 'weight': self._weight}
 
     @staticmethod
     def from_dict(dict_obj):
-        return ProxyNode(host=jsonselect.select('.host', dict_obj),
+        return ProxyNode(addr=jsonselect.select('.addr', dict_obj),
                          port=jsonselect.select('.port', dict_obj),
                          proto=jsonselect.select('.proto', dict_obj),
                          network=jsonselect.select('.network', dict_obj),
@@ -312,7 +312,7 @@ class EtcdBackend(Backend):
     def _as_record(self, name, ttl, nodelist):
         return ProxyRecord(name=name,
                            ttl=ttl,
-                           nodes=nodelist | collect(lambda spec: ProxyNode.from_dict(spec)) | as_list)
+                           nodes=nodelist | collect(lambda node: ProxyNode.from_dict(node)) | as_list)
 
     def _as_records(self, result):
 
