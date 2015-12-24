@@ -139,21 +139,9 @@ class Backend(object):
         """
 
         backend_url = urlparse.urlparse(backend_options)
-        backend_networks = urlparse.parse_qs(backend_url.query).get('network', [])
         self._url = backend_url
-        self._networks = backend_networks
-
-    def supports(self, name):
-        """
-
-        :param name:
-        :return:
-        """
-
-        if not name:
-            return False
-
-        return self._patterns | any(lambda pattern: name.endswith(pattern))
+        self._path = backend_url.path
+        self._networks = urlparse.parse_qs(backend_url.query).get('network', [])
 
     @abc.abstractmethod
     def register(self, name, nodes, ttl=None):
@@ -233,9 +221,9 @@ class EtcdBackend(Backend):
         """
 
         if not name:
-            return [self._url.path] | join('/') | replace(r'/+', '/')
+            return [self._path] | join('/') | replace(r'/+', '/')
         else:
-            keys = [self._url.path] + (name | split(r'\.') | reverse | as_list)
+            keys = [self._path] + (name | split(r'\.') | reverse | as_list)
             return keys | join('/') | replace(r'/+', '/')
 
     def _rawname(self, key):
