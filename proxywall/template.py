@@ -8,5 +8,4 @@ def render(source, context):
     :param context:
     :return:
     """
-    _template = Template(source)
-    return _template.render(context)
+    return Template(source).render(context)

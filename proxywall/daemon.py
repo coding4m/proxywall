@@ -4,6 +4,7 @@ import argparse
 import urlparse
 
 from proxywall import loggers
+from proxywall import monitors
 from proxywall.backend import *
 from proxywall.errors import *
 from proxywall.version import current_version
@@ -19,9 +20,10 @@ def _get_daemon_args():
     parser.add_argument('-backend', dest='backend', required=True,
                         help='which backend to use.')
 
-    parser.add_argument('-template', dest='template', required=True,
+    parser.add_argument('-template-source', dest='template_source', required=True,
                         help='which backend to use.')
-
+    parser.add_argument('-template-destination', dest='template_destination', required=True,
+                        help='which backend to use.')
     parser.add_argument('-template-signal', dest='template_signal', required=True,
                         help='which backend to use.')
 
@@ -39,6 +41,10 @@ def main():
         raise BackendNotFound("backend[type={}] not found.".format(backend_scheme))
 
     backend = backend_cls(backend_options=backend_url)
+    monitors.loop(backend=backend,
+                  template_signal=daemon_args.template_signal,
+                  template_source=daemon_args.template_source,
+                  template_destination=daemon_args.template_destination)
 
 
 if __name__ == '__main__':

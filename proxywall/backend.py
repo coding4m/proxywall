@@ -139,10 +139,8 @@ class Backend(object):
         """
 
         backend_url = urlparse.urlparse(backend_options)
-        backend_patterns = urlparse.parse_qs(backend_url.query).get('pattern', [])
         backend_networks = urlparse.parse_qs(backend_url.query).get('network', [])
         self._url = backend_url
-        self._patterns = backend_patterns
         self._networks = backend_networks
 
     def supports(self, name):

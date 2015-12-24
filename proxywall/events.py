@@ -58,12 +58,11 @@ def _get_container(client, container_id):
 
 
 def _handle_containers(backend, containers):
-    register_proxy_datas = []
-    unregister_proxy_datas = []
-
+    register_proxy_datas, unregister_proxy_datas = ([], [],)
     for container in containers:
         _handle_container(backend, container, register_proxy_datas, unregister_proxy_datas)
 
+    # unregister proxy first.
     for proxy_data in unregister_proxy_datas:
         _unregister_proxy(backend, proxy_data[0])
 
@@ -86,6 +85,7 @@ def _handle_containers(backend, containers):
         else:
             proxy_groups[proxy_name].append(proxy_node)
 
+    # now register proxy.
     for proxy_item in proxy_groups.items():
         _register_proxy(backend, proxy_item[0], proxy_item[1])
 
