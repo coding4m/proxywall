@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import os
 import urlparse
 
 from proxywall import loggers
@@ -35,6 +36,9 @@ def _get_daemon_args():
 
 def main():
     daemon_args = _get_daemon_args()
+
+    if not os.path.exists(daemon_args.template_source):
+        raise ValueError('file {} not exists.'.format(daemon_args.template_source))
 
     backend_url = daemon_args.backend
     backend_scheme = urlparse.urlparse(backend_url).scheme
