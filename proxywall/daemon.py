@@ -16,7 +16,7 @@ _logger = loggers.get_logger('d.Daemon')
 
 
 def _get_daemon_args():
-    parser = argparse.ArgumentParser(prog='dnswall-daemon', description=current_version.desc)
+    parser = argparse.ArgumentParser(prog='proxywall-daemon', description=current_version.desc)
 
     parser.add_argument('-backend', dest='backend', required=True,
                         help='which backend to use.')
