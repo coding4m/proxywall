@@ -21,11 +21,14 @@ def _get_daemon_args():
                         help='which backend to use.')
 
     parser.add_argument('-template-source', dest='template_source', required=True,
-                        help='which backend to use.')
+                        help='template file location.')
     parser.add_argument('-template-destination', dest='template_destination', required=True,
-                        help='which backend to use.')
-    parser.add_argument('-template-signal', dest='template_signal', required=True,
-                        help='which backend to use.')
+                        help='out template file location.')
+
+    parser.add_argument('-prev-command', dest='prev_command',
+                        help='command to run before generate template.')
+    parser.add_argument('-post-command', dest='post_command', required=True,
+                        help='command to run after generate template.')
 
     return parser.parse_args()
 
@@ -42,7 +45,8 @@ def main():
 
     backend = backend_cls(backend_options=backend_url)
     monitors.loop(backend=backend,
-                  template_signal=daemon_args.template_signal,
+                  prev_command=daemon_args.prev_command,
+                  post_command=daemon_args.post_command,
                   template_source=daemon_args.template_source,
                   template_destination=daemon_args.template_destination)
 

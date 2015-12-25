@@ -319,6 +319,6 @@ class EtcdBackend(Backend):
 
     def watches(self, name=None, timeout=None, recursive=None):
         etcd_key = self._etcdkey(name) if name else self._path
-        etcd_results = self._client.watch(etcd_key, timeout=timeout, recursive=recursive)
+        etcd_results = self._client.eternal_watch(etcd_key, recursive=recursive)
         for etcd_result in etcd_results:
             yield self._as_proxylists(etcd_result)
