@@ -321,7 +321,7 @@ class EtcdBackend(Backend):
             return []
         except:
             self._logger.ex('lookall key %s occurs error.', etcd_key)
-        raise BackendError
+            raise BackendError
 
     def _as_proxylists(self, result):
 
