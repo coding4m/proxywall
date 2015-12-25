@@ -16,8 +16,8 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'dnswall-daemon = dnswall.daemon:main',
-            'dnswall-agent = dnswall.agent:main'
+            'proxywall-daemon = proxywall.daemon:main',
+            'proxywall-agent = proxywall.agent:main'
         ]
     }
 
