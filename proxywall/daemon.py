@@ -2,12 +2,12 @@
 
 import argparse
 import os
+import sys
 import urlparse
 
 from proxywall import loggers
 from proxywall import monitors
 from proxywall.backend import *
-from proxywall.errors import *
 from proxywall.version import current_version
 
 __BACKENDS = {"etcd": EtcdBackend}
@@ -38,16 +38,18 @@ def main():
     daemon_args = _get_daemon_args()
 
     if not os.path.exists(daemon_args.template_source):
-        raise ValueError('file {} not exists.'.format(daemon_args.template_source))
+        print('ERROR: template file {} not exists..'.format(daemon_args.template_source))
+        sys.exit(1)
 
     backend_url = daemon_args.backend
     backend_scheme = urlparse.urlparse(backend_url).scheme
 
     backend_cls = __BACKENDS.get(backend_scheme)
     if not backend_cls:
-        raise BackendNotFound("backend[type={}] not found.".format(backend_scheme))
+        print('ERROR: backend[type={}] not found.'.format(backend_scheme))
+        sys.exit(1)
 
-    backend = backend_cls(backend_options=backend_url)
+    backend = backend_cls(backend_url)
     monitors.loop(backend=backend,
                   prev_command=daemon_args.prev_command,
                   post_command=daemon_args.post_command,

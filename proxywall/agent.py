@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 import argparse
+import sys
 import urlparse
+
 from proxywall import events
 from proxywall.backend import *
-from proxywall.errors import *
 from proxywall.version import current_version
 
 __BACKENDS = {"etcd": EtcdBackend}
@@ -23,11 +24,6 @@ def _get_daemon_args():
     parser.add_argument('--docker-tlsca', dest='docker_tls_ca')
     parser.add_argument('--docker-tlskey', dest='docker_tls_key')
     parser.add_argument('--docker-tlscert', dest='docker_tls_cert')
-
-    # return parser.parse_args(
-    #     ['-backend', 'etcd://127.0.0.1:4001/proxywall?pattern=workplus.io&network=bridge',
-    #      '-docker-url', 'tcp://172.16.1.21:2376']
-    # )
     return parser.parse_args()
 
 
@@ -38,9 +34,10 @@ def main():
 
     backend_cls = __BACKENDS.get(backend_scheme)
     if not backend_cls:
-        raise BackendNotFound("backend[type={}] not found.".format(backend_scheme))
+        print('ERROR: backend[type={}] not found.'.format(backend_scheme))
+        sys.exit(1)
 
-    backend = backend_cls(backend_options=backend_url)
+    backend = backend_cls(backend_url)
     events.loop(backend=backend,
                 docker_url=daemon_args.docker_url,
                 docker_tls_verify=daemon_args.docker_tls_verify,

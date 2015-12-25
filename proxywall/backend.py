@@ -119,7 +119,7 @@ class Backend(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, backend_options=None):
+    def __init__(self, backend_options, networks=None):
         """
 
         :param backend_options:
@@ -129,7 +129,21 @@ class Backend(object):
         backend_url = urlparse.urlparse(backend_options)
         self._url = backend_url
         self._path = backend_url.path
-        self._networks = urlparse.parse_qs(backend_url.query).get('network', [])
+
+        if networks:
+            self._networks = networks
+        else:
+            self._networks = urlparse.parse_qs(backend_url.query).get('network', [])
+
+    def register_all(self, name, nodes):
+        """
+
+        :param name:
+        :param nodes:
+        :return:
+        """
+        for node in nodes:
+            self.register(name, node)
 
     @abc.abstractmethod
     def register(self, name, node):
@@ -140,6 +154,16 @@ class Backend(object):
         :return:
         """
         pass
+
+    def unregister_all(self, name, nodes):
+        """
+
+        :param name:
+        :param nodes:
+        :return:
+        """
+        for node in nodes:
+            self.unregister(name, node)
 
     @abc.abstractmethod
     def unregister(self, name, node):
@@ -229,6 +253,9 @@ class EtcdBackend(Backend):
         if not name:
             raise BackendValueError('name must not be none or empty.')
 
+        if not node or not node.uuid:
+            raise BackendValueError('node or node.uuid must not be none or empty.')
+
         if not node or node.network not in self._networks:
             return
 
@@ -244,6 +271,9 @@ class EtcdBackend(Backend):
 
         if not name:
             raise BackendValueError('name must not be none or empty.')
+
+        if not node or not node.uuid:
+            return
 
         etcd_key = self._etcdkey(name, node_id=node.uuid)
         try:
