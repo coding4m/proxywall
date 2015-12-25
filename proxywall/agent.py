@@ -23,6 +23,11 @@ def _get_daemon_args():
     parser.add_argument('--docker-tlsca', dest='docker_tls_ca')
     parser.add_argument('--docker-tlskey', dest='docker_tls_key')
     parser.add_argument('--docker-tlscert', dest='docker_tls_cert')
+
+    # return parser.parse_args(
+    #     ['-backend', 'etcd://127.0.0.1:4001/proxywall?pattern=workplus.io&network=bridge',
+    #      '-docker-url', 'tcp://172.16.1.21:2376']
+    # )
     return parser.parse_args()
 
 

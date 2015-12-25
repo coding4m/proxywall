@@ -9,7 +9,7 @@ from proxywall import loggers
 from proxywall.commons import *
 from proxywall.errors import *
 
-__all__ = ["ProxyNode", "ProxyRecord", "Backend", "EtcdBackend"]
+__all__ = ["ProxyNode", "ProxyList", "Backend", "EtcdBackend"]
 
 
 class ProxyNode(object):
@@ -17,95 +17,87 @@ class ProxyNode(object):
 
     """
 
-    _ALLOW_PROXY_PROTOS = ['http', 'https']
-    _DEFAULT_PROXY_PROTO = 'http'
+    ALLOW_PROTOS = ['http', 'https']
+    DEFAULT_PROTO = ALLOW_PROTOS[0]
 
-    def __init__(self, addr=None, port=None, proto=None, network=None, weight=None):
-        """
+    def __init__(self, uuid=None, addr=None, port=None, proto=None, network=None, weight=None):
 
-        :param addr:
-        :param port:
-        :param ttl:
-        :return:
-        """
-
-        if proto and proto not in ProxyNode._ALLOW_PROXY_PROTOS:
+        if proto and proto not in ProxyNode.ALLOW_PROTOS:
             raise ValueError('')
 
+        self._uuid = uuid
         self._addr = addr
-        self._port = port if isinstance(port, int) else (port | as_int)
-        self._proto = proto if proto else ProxyNode._DEFAULT_PROXY_PROTO
+        self._port = port
+        self._proto = proto if proto else ProxyNode.DEFAULT_PROTO
         self._network = network
         self._weight = weight if weight else -1
 
-    def __cmp__(self, other):
-        # TODO
-        pass
+    def __eq__(self, other):
+        if self is other:
+            return True
+
+        if not isinstance(other, ProxyNode):
+            return False
+
+        return self._uuid == other._uuid
+
+    def __ne__(self, other):
+        if self is other:
+            return False
+
+        if not isinstance(other, ProxyNode):
+            return True
+
+        return self._uuid != other._uuid
+
+    def __hash__(self):
+        return hash(self._uuid)
+
+    @property
+    def uuid(self):
+        return self._uuid
 
     @property
     def addr(self):
-        """
-
-        :return:
-        """
         return self._addr
 
     @property
     def port(self):
-        """
-
-        :return:
-        """
         return self._port
 
     @property
     def proto(self):
-        """
-
-        :return:
-        """
         return self._proto
 
     @property
     def network(self):
-        """
-
-        :return:
-        """
         return self._network
 
     @property
     def weight(self):
-        """
-
-        :return:
-        """
         return self._weight
 
     def to_dict(self):
-        return {'addr': self._addr, 'port': self._port,
+        return {'uuid': self._uuid, 'addr': self._addr, 'port': self._port,
                 'proto': self._proto, 'network': self._network, 'weight': self._weight}
 
     @staticmethod
     def from_dict(dict_obj):
-        return ProxyNode(addr=jsonselect.select('.addr', dict_obj),
+        return ProxyNode(uuid=jsonselect.select('.uuid', dict_obj),
+                         addr=jsonselect.select('.addr', dict_obj),
                          port=jsonselect.select('.port', dict_obj),
                          proto=jsonselect.select('.proto', dict_obj),
                          network=jsonselect.select('.network', dict_obj),
                          weight=jsonselect.select('.weight', dict_obj))
 
 
-class ProxyRecord(object):
-    def __init__(self, name=None, ttl=-1, nodes=None):
-        """
+class ProxyList(object):
+    """
 
-        :param name:
-        :param nodes:
-        :return:
-        """
+    """
 
+    def __init__(self, name=None, nodes=None):
         self._name = name
-        self._ttl = ttl if ttl else -1
         self._nodes = nodes if nodes else []
 
     @property
@@ -113,15 +105,11 @@ class ProxyRecord(object):
         return self._name
 
     @property
-    def ttl(self):
-        return self._ttl
-
-    @property
     def nodes(self):
         return self._nodes
 
     def to_dict(self):
-        return {"name": self._name, "ttl": self._ttl,
+        return {"name": self._name,
                 "nodes": self._nodes | collect(lambda node: node.to_dict()) | as_list}
 
 
@@ -144,21 +132,21 @@ class Backend(object):
         self._networks = urlparse.parse_qs(backend_url.query).get('network', [])
 
     @abc.abstractmethod
-    def register(self, name, nodes, ttl=None):
+    def register(self, name, node):
         """
 
         :param name:
-        :param nodes:
-        :param ttl:
+        :param node:
         :return:
         """
         pass
 
     @abc.abstractmethod
-    def unregister(self, name):
+    def unregister(self, name, node):
         """
 
-        :param name: domain name.
+        :param name:
+        :param node:
         :return:
         """
         pass
@@ -168,7 +156,7 @@ class Backend(object):
         """
 
         :param name: domain name.
-        :return: a releative ProxyRecord.
+        :return: a releative ProxyList.
         """
         pass
 
@@ -198,13 +186,9 @@ class EtcdBackend(Backend):
 
     """
 
-    def __init__(self, *args, **kwargs):
-        """
+    NODES_SUBPATH = '@nodes'
 
-        :param args:
-        :param kwargs:
-        :return:
-        """
+    def __init__(self, *args, **kwargs):
 
         super(EtcdBackend, self).__init__(*args, **kwargs)
         host_pairs = [(addr | split(r':')) for addr in (self._url.netloc | split(','))]
@@ -213,109 +197,128 @@ class EtcdBackend(Backend):
         self._client = etcd.Client(host=host_tuple, allow_reconnect=True)
         self._logger = loggers.get_logger('p.b.EtcdBackend')
 
-    def _etcdkey(self, name):
-        """
+    def _etcdkey(self, node_name, node_id=None):
 
-        :param name: domain format string, like api.dnswall.io
-        :return: a etcd key format string, /io/dnswall/api
-        """
+        if not node_id:
+            node_id = ''
+
+        keys = [self._path] + \
+               (node_name | split(r'\.') | reverse | as_list) + \
+               [EtcdBackend.NODES_SUBPATH, node_id]
+        return keys | join('/') | replace(r'/+', '/')
+
+    def _rawkey(self, etcd_key):
+
+        node_parts = etcd_key | split(r'/') | reverse | as_list
+        if self._path and not self._path == '/':
+            node_parts = node_parts[:-1]
+
+        return node_parts[1:-1] \
+               | join('.') \
+               | replace('\.+', '.') \
+               | replace('[^.]*\.*{}\.*'.format(EtcdBackend.NODES_SUBPATH), '')
+
+    def _etcdvalue(self, raw_value):
+        return json.dumps(raw_value.to_dict())
+
+    def _rawvalue(self, etcd_value):
+        return ProxyNode.from_dict(json.loads(etcd_value))
+
+    def register(self, name, node, ttl=None):
 
         if not name:
-            return [self._path] | join('/') | replace(r'/+', '/')
-        else:
-            keys = [self._path] + (name | split(r'\.') | reverse | as_list)
-            return keys | join('/') | replace(r'/+', '/')
+            raise BackendValueError('name must not be none or empty.')
 
-    def _rawname(self, key):
-        """
+        if not node or node.network not in self._networks:
+            return
 
-        :param key: etcd key, like /io/dnswall/api
-        :return: domain format string, like api.dnswall.io
-        """
-
-        raw_key = key if key.endswith('/') else key + '/'
-        raw_names = raw_key | split(r'/') | reverse | as_list
-        return raw_names[1:-1] | join('.') | replace('\.+', '.')
-
-    def register(self, name, nodes, ttl=None):
-
-        if not self.supports(name):
-            raise BackendError("name={} unsupport.".format(name))
-
+        etcd_key = self._etcdkey(name, node_id=node.uuid)
         try:
-
-            nodelist = nodes | collect(lambda node: node.to_dict()) | as_list
-            self._client.set(self._etcdkey(name), json.dumps(nodelist))
-        except Exception as e:
-            # TODO
-            print(e)
+            etcd_value = self._etcdvalue(node)
+            self._client.set(etcd_key, etcd_value)
+        except:
+            self._logger.ex('register occur error.')
             raise BackendError
 
-    def unregister(self, name):
+    def unregister(self, name, node):
 
         if not name:
-            raise ValueError('name must not be none or empty.')
+            raise BackendValueError('name must not be none or empty.')
 
+        etcd_key = self._etcdkey(name, node_id=node.uuid)
         try:
 
-            self._client.delete(self._etcdkey(name))
+            self._client.delete(etcd_key)
         except etcd.EtcdKeyError:
-            pass
+            self._logger.w('unregister key %s not found, just ignore it', etcd_key)
         except:
-            # TODO
+            self._logger.ex('unregister occur error.')
             raise BackendError
 
     def lookup(self, name):
 
-        if not self.supports(name):
-            raise BackendError("name={} unsupport.".format(name))
+        if not name:
+            raise BackendValueError('name must not be none or empty.')
 
+        etcd_key = self._etcdkey(name)
         try:
 
-            result = self._client.get(self._etcdkey(name))
-            if not result.value:
-                return ProxyRecord(name=name)
+            etcd_result = self._client.read(etcd_key, recursive=True)
+            result_nodes = etcd_result.leaves \
+                           | select(lambda it: it.value) \
+                           | collect(lambda it: (self._rawkey(it.key), it.value)) \
+                           | select(lambda it: it[0] == name) \
+                           | collect(lambda it: self._rawvalue(it[1])) \
+                           | as_list
 
-            return self._as_record(name, result.ttl, json.loads(result.value))
+            return ProxyList(name=name, nodes=result_nodes)
         except etcd.EtcdKeyError:
-            return ProxyRecord(name=name)
-        except Exception as e:
-            # TODO
-            print(e)
+            self._logger.w('key %s not found, just ignore it.', etcd_key)
+            return ProxyList(name=name)
+        except:
+            self._logger.ex('lookup key %s occurs error.', etcd_key)
             raise BackendError
 
     def lookall(self, name=None):
+
+        etcd_key = self._etcdkey(name) if name else self._path
         try:
 
-            result = self._client.read(self._etcdkey(name), recursive=True)
-            return self._as_records(result)
+            etcd_result = self._client.read(etcd_key, recursive=True)
+            return self._as_proxylists(etcd_result)
         except etcd.EtcdKeyError:
+            self._logger.w('key %s not found, just ignore it.', etcd_key)
             return []
-        except Exception as e:
-            print(e)
-            pass
+        except:
+            self._logger.ex('lookall key %s occurs error.', etcd_key)
+        raise BackendError
 
-    def _as_record(self, name, ttl, nodelist):
-        return ProxyRecord(name=name,
-                           ttl=ttl,
-                           nodes=nodelist | collect(lambda node: ProxyNode.from_dict(node)) | as_list)
+    def _as_proxylists(self, result):
 
-    def _as_records(self, result):
+        results = {}
+        self._append_proxylist(result, results)
 
-        records = []
-        self._append_records(result, records)
+        for child in result.leaves:
+            self._append_proxylist(child, results)
 
-        for child in result.children:
-            self._append_records(child, records)
-        return records
+        return results.items() \
+               | collect(lambda it: ProxyList(name=it[0], nodes=it[1])) \
+               | as_list
 
-    def _append_records(self, result, records):
+    def _append_proxylist(self, result, results):
 
-        if result.value:
-            nodelist = json.loads(result.value)
-            records.append(self._as_record(self._rawname(result.key), result.ttl, nodelist))
+        if not result.value:
+            return
+
+        name = self._rawkey(result.key)
+        node = self._rawvalue(result.value)
+        if results.get(name):
+            results[name].append(node)
+        else:
+            results[name] = [node]
 
     def watches(self, name=None, timeout=None, recursive=None):
-        results = self._client.watch(self._etcdkey(name), timeout=timeout, recursive=recursive)
-        for result in results:
-            yield self._as_records(result)
+        etcd_key = self._etcdkey(name) if name else self._path
+        etcd_results = self._client.watch(etcd_key, timeout=timeout, recursive=recursive)
+        for etcd_result in etcd_results:
+            yield self._as_proxylists(etcd_result)
