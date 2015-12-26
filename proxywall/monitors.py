@@ -56,14 +56,14 @@ def _handle_proxy(backend,
     if prev_command:
         commands.run(prev_command)
 
-    proxylists = backend.lookall()
+    proxy_details = backend.lookall()
 
     template_dir = os.path.dirname(template_destination)
     if not os.path.exists(template_dir):
         os.makedirs(template_dir)
 
     template_in = _load_template(template_source)
-    template_out = template.render(template_in, context={'proxy_records': proxylists})
+    template_out = template.render(template_in, context={'proxy_details': proxy_details})
     with open(template_destination, 'w') as f:
         f.write(template_out)
 
