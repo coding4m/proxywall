@@ -112,6 +112,13 @@ class ProxyList(object):
         return {"name": self._name,
                 "nodes": self._nodes | collect(lambda node: node.to_dict()) | as_list}
 
+    @staticmethod
+    def from_dict(dict_obj):
+        name = jsonselect.select('.name', dict_obj)
+        nodes = jsonselect.select('.nodes', dict_obj)
+        return ProxyList(name=name,
+                         nodes=nodes | collect(lambda it: ProxyNode.from_dict(it)) | as_list)
+
 
 class Backend(object):
     """
@@ -248,7 +255,7 @@ class EtcdBackend(Backend):
     def _rawvalue(self, etcd_value):
         return ProxyNode.from_dict(json.loads(etcd_value))
 
-    def register(self, name, node, ttl=None):
+    def register(self, name, node):
 
         if not name:
             raise BackendValueError('name must not be none or empty.')
