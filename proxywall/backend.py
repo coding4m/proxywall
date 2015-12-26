@@ -306,7 +306,6 @@ class EtcdBackend(Backend):
                            | as_list
 
             return ProxyList(name=name, nodes=result_nodes)
-
         except etcd.EtcdKeyError:
             self._logger.w('key %s not found, just ignore it.', etcd_key)
             return ProxyList(name=name)
@@ -321,7 +320,6 @@ class EtcdBackend(Backend):
 
             etcd_result = self._client.read(etcd_key, recursive=True)
             return self._to_proxylists(etcd_result)
-
         except etcd.EtcdKeyError:
             self._logger.w('key %s not found, just ignore it.', etcd_key)
             return []
@@ -332,6 +330,7 @@ class EtcdBackend(Backend):
     def _isavailable_proxy(self, node):
         if not self._networks:
             return True
+
         return node.network in self._networks
 
     def _to_proxylists(self, result):
