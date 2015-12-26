@@ -50,7 +50,7 @@ def main():
         sys.exit(1)
 
     backend = backend_cls(backend_url)
-    monitors.loop(backend=backend,
+    monitors.loop(backend,
                   prev_command=callargs.prev_command,
                   post_command=callargs.post_command,
                   template_source=callargs.template_source,

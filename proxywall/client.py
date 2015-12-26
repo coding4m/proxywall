@@ -62,22 +62,22 @@ def main():
 
 
 def _backend_ls(backend, callargs):
-    proxylists = backend.lookall(name=callargs.name)
-    dictlists = proxylists | collect(lambda it: it.to_dict()) | as_list
-    print json.dumps(dictlists, indent=4, sort_keys=True)
+    proxy_details = backend.lookall(name=callargs.name)
+    dict_details = proxy_details | collect(lambda it: it.to_dict()) | as_list
+    print json.dumps(dict_details, indent=4, sort_keys=True)
 
 
 def _backend_rm(backend, callargs):
     try:
-        proxylist = _parse_proxylist(callargs)
-        backend.unregister_all(proxylist.name, proxylist.nodes)
+        proxy_detail = _parse_proxy_details(callargs)
+        backend.unregister_all(proxy_detail.name, proxy_detail.nodes)
     except:
         traceback.print_exc()
     else:
         print('OK.')
 
 
-def _parse_proxylist(callargs):
+def _parse_proxy_details(callargs):
     proxyjson = ''
 
     with open(callargs.json, 'r') as f:
@@ -87,14 +87,14 @@ def _parse_proxylist(callargs):
                 break
             proxyjson += proxydata
 
-    proxylist = ProxyList.from_dict(json.loads(proxyjson))
+    proxylist = ProxyDetail.from_dict(json.loads(proxyjson))
     return proxylist
 
 
 def _backend_add(backend, callargs):
     try:
-        proxylist = _parse_proxylist(callargs)
-        backend.register_all(proxylist.name, proxylist.nodes)
+        proxy_detail = _parse_proxy_details(callargs)
+        backend.register_all(proxy_detail.name, proxy_detail.nodes)
     except:
         traceback.print_exc()
     else:

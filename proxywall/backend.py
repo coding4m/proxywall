@@ -9,7 +9,7 @@ from proxywall import loggers
 from proxywall.commons import *
 from proxywall.errors import *
 
-__all__ = ["ProxyNode", "ProxyList", "Backend", "EtcdBackend"]
+__all__ = ["ProxyNode", "ProxyDetail", "Backend", "EtcdBackend"]
 
 
 class ProxyNode(object):
@@ -93,12 +93,12 @@ class ProxyNode(object):
                          weight=jsonselect.select('.weight', dict_obj))
 
 
-class ProxyList(object):
+class ProxyDetail(object):
     """
 
     """
 
-    def __init__(self, name=None, nodes=None):
+    def __init__(self, name, nodes=None):
         self._name = name
         self._nodes = nodes if nodes else []
 
@@ -118,8 +118,8 @@ class ProxyList(object):
     def from_dict(dict_obj):
         name = jsonselect.select('.name', dict_obj)
         nodes = jsonselect.select('.nodes', dict_obj)
-        return ProxyList(name=name,
-                         nodes=nodes | collect(lambda it: ProxyNode.from_dict(it)) | as_list)
+        return ProxyDetail(name,
+                           nodes=nodes | collect(lambda it: ProxyNode.from_dict(it)) | as_list)
 
 
 class Backend(object):
@@ -185,7 +185,7 @@ class Backend(object):
         """
 
         :param name: domain name.
-        :return: a releative ProxyList.
+        :return: a releative ProxyDetail.
         """
         pass
 
@@ -215,7 +215,7 @@ class EtcdBackend(Backend):
 
     """
 
-    NODES_SUBPATH = '@nodes'
+    NODES_KEY = '@nodes'
 
     def __init__(self, *args, **kwargs):
 
@@ -226,27 +226,26 @@ class EtcdBackend(Backend):
         self._client = etcd.Client(host=host_tuple, allow_reconnect=True)
         self._logger = loggers.get_logger('p.b.EtcdBackend')
 
-    def _etcdkey(self, node_name, node_id=None):
+    def _etcdkey(self, name, uuid=None):
 
-        if not node_id:
-            node_id = ''
+        if not uuid:
+            uuid = ''
 
-        keys = [self._path] + \
-               (node_name | split(r'\.') | reverse | as_list) + \
-               [EtcdBackend.NODES_SUBPATH, node_id]
-        return keys | join('/') | replace(r'/+', '/')
+        nameparts = (name | split(r'\.') | reverse | as_list)
+        keyparts = [self._path] + nameparts + [EtcdBackend.NODES_KEY, uuid]
+        return keyparts | join('/') | replace(r'/+', '/')
 
     def _rawkey(self, etcd_key):
 
-        node_parts = etcd_key | split(r'/') | reverse | as_list
+        keyparts = etcd_key | split(r'/') | reverse | as_list
         if self._path and not self._path == '/':
-            node_parts = node_parts[:-1]
+            keyparts = keyparts[:-1]
 
-        path_pattern = '[^.]*\.*{}\.*'.format(EtcdBackend.NODES_SUBPATH)
-        return node_parts[1:-1] \
+        keypattern = '[^.]*\.*{}\.*'.format(EtcdBackend.NODES_KEY)
+        return keyparts[1:-1] \
                | join('.') \
                | replace('\.+', '.') \
-               | replace(path_pattern, '')
+               | replace(keypattern, '')
 
     def _etcdvalue(self, raw_value):
         return json.dumps(raw_value.to_dict())
@@ -262,7 +261,7 @@ class EtcdBackend(Backend):
         if not node or not node.uuid:
             raise BackendValueError('node or node.uuid must not be none or empty.')
 
-        etcd_key = self._etcdkey(name, node_id=node.uuid)
+        etcd_key = self._etcdkey(name, uuid=node.uuid)
         try:
             etcd_value = self._etcdvalue(node)
             self._client.set(etcd_key, etcd_value)
@@ -278,7 +277,7 @@ class EtcdBackend(Backend):
         if not node or not node.uuid:
             return
 
-        etcd_key = self._etcdkey(name, node_id=node.uuid)
+        etcd_key = self._etcdkey(name, uuid=node.uuid)
         try:
 
             self._client.delete(etcd_key)
@@ -302,13 +301,13 @@ class EtcdBackend(Backend):
                            | collect(lambda it: (self._rawkey(it.key), it.value)) \
                            | select(lambda it: it[0] == name) \
                            | collect(lambda it: self._rawvalue(it[1])) \
-                           | select(lambda it: self._isavailable_proxy(it)) \
+                           | select(lambda it: self._isavailable_proxy_node(it)) \
                            | as_list
 
-            return ProxyList(name=name, nodes=result_nodes)
+            return ProxyDetail(name, nodes=result_nodes)
         except etcd.EtcdKeyError:
             self._logger.w('key %s not found, just ignore it.', etcd_key)
-            return ProxyList(name=name)
+            return ProxyDetail(name)
         except:
             self._logger.ex('lookup key %s occurs error.', etcd_key)
             raise BackendError
@@ -319,7 +318,7 @@ class EtcdBackend(Backend):
         try:
 
             etcd_result = self._client.read(etcd_key, recursive=True)
-            return self._to_proxylists(etcd_result)
+            return self._to_proxy_details(etcd_result)
         except etcd.EtcdKeyError:
             self._logger.w('key %s not found, just ignore it.', etcd_key)
             return []
@@ -327,25 +326,25 @@ class EtcdBackend(Backend):
             self._logger.ex('lookall key %s occurs error.', etcd_key)
             raise BackendError
 
-    def _isavailable_proxy(self, node):
+    def _isavailable_proxy_node(self, node):
         if not self._networks:
             return True
 
         return node.network in self._networks
 
-    def _to_proxylists(self, result):
+    def _to_proxy_details(self, result):
 
         results = {}
-        self._collect_proxylist(result, results)
+        self._collect_proxy_detail(result, results)
 
         for child in result.leaves:
-            self._collect_proxylist(child, results)
+            self._collect_proxy_detail(child, results)
 
         return results.items() \
-               | collect(lambda it: ProxyList(name=it[0], nodes=it[1])) \
+               | collect(lambda it: ProxyDetail(it[0], nodes=it[1])) \
                | as_list
 
-    def _collect_proxylist(self, result, results):
+    def _collect_proxy_detail(self, result, results):
 
         if not result.value:
             return
@@ -353,7 +352,7 @@ class EtcdBackend(Backend):
         name = self._rawkey(result.key)
         node = self._rawvalue(result.value)
 
-        if not self._isavailable_proxy(node):
+        if not self._isavailable_proxy_node(node):
             return
 
         if results.get(name):
@@ -365,4 +364,4 @@ class EtcdBackend(Backend):
         etcd_key = self._etcdkey(name) if name else self._path
         etcd_results = self._client.eternal_watch(etcd_key, recursive=recursive)
         for etcd_result in etcd_results:
-            yield self._to_proxylists(etcd_result)
+            yield self._to_proxy_details(etcd_result)

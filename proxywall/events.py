@@ -13,8 +13,8 @@ from proxywall.errors import *
 _logger = loggers.get_logger('d.e.Loop')
 
 
-def loop(backend=None,
-         docker_url=None,
+def loop(backend,
+         docker_url,
          docker_tls_verify=False,
          docker_tls_ca=None,
          docker_tls_key=None,
@@ -50,8 +50,8 @@ def _event_loop(backend, client):
 
 def _get_containers(client):
     return client.containers(quiet=True, all=True) \
-           | collect(lambda container: _jsonselect(container, '.Id')) \
-           | collect(lambda container_id: _get_container(client, container_id))
+           | collect(lambda it: _jsonselect(it, '.Id')) \
+           | collect(lambda it: _get_container(client, it))
 
 
 def _get_container(client, container_id):
@@ -67,8 +67,8 @@ def _handle_container(backend, container):
     try:
 
         container_environments = _jsonselect(container, '.Config .Env') \
-                                 | collect(lambda env: env | split(r'=', maxsplit=1)) \
-                                 | collect(lambda env: env | as_tuple) \
+                                 | collect(lambda it: it | split(r'=', maxsplit=1)) \
+                                 | collect(lambda it: it | as_tuple) \
                                  | as_tuple \
                                  | as_dict
 
@@ -88,11 +88,14 @@ def _handle_container(backend, container):
 
         container_id = _jsonselect(container, '.Id')
         container_status = _jsonselect(container, '.State .Status')
+
+        proxy_node = ProxyNode(uuid=container_id, addr=proxy_addr, port=proxy_port,
+                               proto=proxy_proto, network=proxy_network, weight=proxy_weight)
+
         if container_status not in ['paused', 'exited']:
-            _register_proxy(backend, proxy_host,
-                            (container_id, proxy_addr, proxy_port, proxy_proto, proxy_network, proxy_weight))
+            _register_proxy(backend, proxy_host, proxy_node)
         else:
-            _unregister_proxy(backend, proxy_host, (container_id,))
+            _unregister_proxy(backend, proxy_host, proxy_node)
 
     except BackendError as e:
         raise e
@@ -104,20 +107,11 @@ def _jsonselect(obj, selector):
     return jsonselect.select(selector, obj)
 
 
-def _register_proxy(backend, proxy_name, proxy_node):
-    _logger.w('register proxy[virtual_host=%s] to backend.', proxy_name)
-
-    node = ProxyNode(uuid=proxy_node[0],
-                     addr=proxy_node[1],
-                     port=proxy_node[2],
-                     proto=proxy_node[3],
-                     network=proxy_node[4],
-                     weight=proxy_node[5])
-    backend.register(proxy_name, node)
+def _register_proxy(backend, proxy_host, proxy_node):
+    _logger.w('register proxy[virtual_host=%s] to backend.', proxy_host)
+    backend.register(proxy_host, proxy_node)
 
 
-def _unregister_proxy(backend, proxy_name, proxy_node):
-    _logger.w('unregister proxy[virtual_host=%s] from backend.', proxy_name)
-
-    node = ProxyNode(uuid=proxy_node[0])
-    backend.unregister(proxy_name, node)
+def _unregister_proxy(backend, proxy_host, proxy_node):
+    _logger.w('unregister proxy[virtual_host=%s] from backend.', proxy_host)
+    backend.unregister(proxy_host, node)
