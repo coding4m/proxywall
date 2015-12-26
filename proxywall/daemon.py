@@ -15,7 +15,7 @@ __BACKENDS = {"etcd": EtcdBackend}
 _logger = loggers.get_logger('d.Daemon')
 
 
-def _get_daemon_args():
+def _get_callargs():
     parser = argparse.ArgumentParser(prog='proxywall-daemon', description=current_version.desc)
 
     parser.add_argument('-backend', dest='backend', required=True,
@@ -35,13 +35,13 @@ def _get_daemon_args():
 
 
 def main():
-    daemon_args = _get_daemon_args()
+    callargs = _get_callargs()
 
-    if not os.path.exists(daemon_args.template_source):
-        print('ERROR: template file {} not exists..'.format(daemon_args.template_source))
+    if not os.path.exists(callargs.template_source):
+        print('ERROR: template file {} not exists..'.format(callargs.template_source))
         sys.exit(1)
 
-    backend_url = daemon_args.backend
+    backend_url = callargs.backend
     backend_scheme = urlparse.urlparse(backend_url).scheme
 
     backend_cls = __BACKENDS.get(backend_scheme)
@@ -51,10 +51,10 @@ def main():
 
     backend = backend_cls(backend_url)
     monitors.loop(backend=backend,
-                  prev_command=daemon_args.prev_command,
-                  post_command=daemon_args.post_command,
-                  template_source=daemon_args.template_source,
-                  template_destination=daemon_args.template_destination)
+                  prev_command=callargs.prev_command,
+                  post_command=callargs.post_command,
+                  template_source=callargs.template_source,
+                  template_destination=callargs.template_destination)
 
 
 if __name__ == '__main__':

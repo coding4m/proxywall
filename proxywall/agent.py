@@ -11,7 +11,7 @@ from proxywall.version import current_version
 __BACKENDS = {"etcd": EtcdBackend}
 
 
-def _get_daemon_args():
+def _get_callargs():
     parser = argparse.ArgumentParser(prog='proxywall-agent', description=current_version.desc)
 
     parser.add_argument('-backend', dest='backend', required=True,
@@ -28,8 +28,8 @@ def _get_daemon_args():
 
 
 def main():
-    daemon_args = _get_daemon_args()
-    backend_url = daemon_args.backend
+    callargs = _get_callargs()
+    backend_url = callargs.backend
     backend_scheme = urlparse.urlparse(backend_url).scheme
 
     backend_cls = __BACKENDS.get(backend_scheme)
@@ -39,11 +39,11 @@ def main():
 
     backend = backend_cls(backend_url)
     events.loop(backend=backend,
-                docker_url=daemon_args.docker_url,
-                docker_tls_verify=daemon_args.docker_tls_verify,
-                docker_tls_ca=daemon_args.docker_tls_ca,
-                docker_tls_key=daemon_args.docker_tls_key,
-                docker_tls_cert=daemon_args.docker_tls_cert)
+                docker_url=callargs.docker_url,
+                docker_tls_verify=callargs.docker_tls_verify,
+                docker_tls_ca=callargs.docker_tls_ca,
+                docker_tls_key=callargs.docker_tls_key,
+                docker_tls_cert=callargs.docker_tls_cert)
 
 
 if __name__ == '__main__':
