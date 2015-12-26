@@ -27,17 +27,17 @@ def _get_callargs():
 
     subparsers = parser.add_subparsers(help='avaliables commands.')
 
-    subparser_ls = subparsers.add_parser('ls', help='ls names.')
+    subparser_ls = subparsers.add_parser('ls', help='ls proxy.')
     subparser_ls.add_argument('name', nargs='?',
-                              help='list names start with name. if not set, list all.')
+                              help='list proxy start with name. if not set, list all.')
     subparser_ls.set_defaults(action=_backend_ls)
 
-    subparser_rm = subparsers.add_parser('rm', help='rm names use a json format file.')
-    subparser_rm.add_argument('json', help='names json file.')
+    subparser_rm = subparsers.add_parser('rm', help='rm proxy use a json format file.')
+    subparser_rm.add_argument('json', help='proxy json file.')
     subparser_rm.set_defaults(action=_backend_rm)
 
-    subparser_add = subparsers.add_parser('add', help='add names use a json format file.')
-    subparser_add.add_argument('json', help='names json file.')
+    subparser_add = subparsers.add_parser('add', help='add proxy use a json format file.')
+    subparser_add.add_argument('json', help='proxy json file.')
     subparser_add.set_defaults(action=_backend_add)
     return parser.parse_args()
 
