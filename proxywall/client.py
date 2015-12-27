@@ -87,8 +87,8 @@ def _parse_proxy_details(callargs):
                 break
             proxyjson += proxydata
 
-    proxylist = ProxyDetail.from_dict(json.loads(proxyjson))
-    return proxylist
+    proxy_detail = ProxyDetail.from_dict(json.loads(proxyjson))
+    return proxy_detail
 
 
 def _backend_add(backend, callargs):
