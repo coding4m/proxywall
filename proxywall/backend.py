@@ -255,11 +255,8 @@ class EtcdBackend(Backend):
 
     def register(self, name, node):
 
-        if not name:
-            raise BackendValueError('name must not be none or empty.')
-
-        if not node or not node.uuid:
-            raise BackendValueError('node or node.uuid must not be none or empty.')
+        self._check_name(name)
+        self._check_node(node)
 
         etcd_key = self._etcdkey(name, uuid=node.uuid)
         try:
@@ -269,13 +266,18 @@ class EtcdBackend(Backend):
             self._logger.ex('register occur error.')
             raise BackendError
 
-    def unregister(self, name, node):
-
+    def _check_name(self, name):
         if not name:
             raise BackendValueError('name must not be none or empty.')
 
+    def _check_node(self, node):
         if not node or not node.uuid:
-            return
+            raise BackendValueError('node or node.uuid must not be none or empty.')
+
+    def unregister(self, name, node):
+
+        self._check_name(name)
+        self._check_node(node)
 
         etcd_key = self._etcdkey(name, uuid=node.uuid)
         try:
@@ -289,8 +291,7 @@ class EtcdBackend(Backend):
 
     def lookup(self, name):
 
-        if not name:
-            raise BackendValueError('name must not be none or empty.')
+        self._check_name(name)
 
         etcd_key = self._etcdkey(name)
         try:
@@ -301,7 +302,7 @@ class EtcdBackend(Backend):
                            | collect(lambda it: (self._rawkey(it.key), it.value)) \
                            | select(lambda it: it[0] == name) \
                            | collect(lambda it: self._rawvalue(it[1])) \
-                           | select(lambda it: self._isavailable_proxy_node(it)) \
+                           | select(lambda it: self._isavailable_node(it)) \
                            | as_list
 
             return ProxyDetail(name, nodes=result_nodes)
@@ -326,7 +327,7 @@ class EtcdBackend(Backend):
             self._logger.ex('lookall key %s occurs error.', etcd_key)
             raise BackendError
 
-    def _isavailable_proxy_node(self, node):
+    def _isavailable_node(self, node):
         if not self._networks:
             return True
 
@@ -335,16 +336,16 @@ class EtcdBackend(Backend):
     def _to_proxy_details(self, result):
 
         results = {}
-        self._collect_proxy_detail(result, results)
+        self._collect_proxy_details(result, results)
 
         for child in result.leaves:
-            self._collect_proxy_detail(child, results)
+            self._collect_proxy_details(child, results)
 
         return results.items() \
                | collect(lambda it: ProxyDetail(it[0], nodes=it[1])) \
                | as_list
 
-    def _collect_proxy_detail(self, result, results):
+    def _collect_proxy_details(self, result, results):
 
         if not result.value:
             return
@@ -352,7 +353,7 @@ class EtcdBackend(Backend):
         name = self._rawkey(result.key)
         node = self._rawvalue(result.value)
 
-        if not self._isavailable_proxy_node(node):
+        if not self._isavailable_node(node):
             return
 
         if results.get(name):
