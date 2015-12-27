@@ -67,7 +67,9 @@ def _handle_proxy(backend,
     with open(template_destination, 'w') as f:
         f.write(template_out)
 
-    commands.run(post_command)
+    rc, cmdout, cmderr = commands.run(post_command)
+    if rc != 0:
+        _logger.w('run %s with exitcode %s', post_command, rc)
 
 
 def _load_template(template_source):

@@ -22,7 +22,7 @@ def _get_callargs():
                         help='which backend to use.')
 
     parser.add_argument('-template-source', dest='template_source', required=True,
-                        help='template file location.')
+                        help='jinja2 template file location.')
     parser.add_argument('-template-destination', dest='template_destination', required=True,
                         help='out template file location.')
 
