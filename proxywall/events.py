@@ -114,4 +114,4 @@ def _register_proxy(backend, proxy_host, proxy_node):
 
 def _unregister_proxy(backend, proxy_host, proxy_node):
     _logger.w('unregister proxy[virtual_host=%s] from backend.', proxy_host)
-    backend.unregister(proxy_host, node)
+    backend.unregister(proxy_host, proxy_node)
