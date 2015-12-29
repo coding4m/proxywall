@@ -9,7 +9,7 @@ from proxywall import loggers
 from proxywall import supervisor
 from proxywall import template
 
-_logger = loggers.get_logger('p.m.Loop')
+_logger = loggers.getlogger('p.m.Loop')
 
 
 def loop(backend,

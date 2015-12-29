@@ -12,7 +12,7 @@ from proxywall.version import current_version
 
 __BACKENDS = {"etcd": EtcdBackend}
 
-_logger = loggers.get_logger('d.Daemon')
+_logger = loggers.getlogger('d.Daemon')
 
 
 def _get_callargs():

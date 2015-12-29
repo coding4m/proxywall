@@ -224,7 +224,7 @@ class EtcdBackend(Backend):
         host_tuple = [(hostpair[0], int(hostpair[1])) for hostpair in host_pairs] | as_tuple
 
         self._client = etcd.Client(host=host_tuple, allow_reconnect=True)
-        self._logger = loggers.get_logger('p.b.EtcdBackend')
+        self._logger = loggers.getlogger('p.b.EtcdBackend')
 
     def _etcdkey(self, name, uuid=None):
 

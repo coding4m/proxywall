@@ -10,7 +10,7 @@ from proxywall.backend import *
 from proxywall.commons import *
 from proxywall.errors import *
 
-_logger = loggers.get_logger('d.e.Loop')
+_logger = loggers.getlogger('d.e.Loop')
 
 
 def loop(backend,
@@ -97,6 +97,8 @@ def _handle_container(backend, container):
         else:
             _unregister_proxy(backend, proxy_host, proxy_node)
 
+    except BackendValueError:
+        _logger.ex('handle container occurs BackendValueError, just ignore it.')
     except BackendError as e:
         raise e
     except:

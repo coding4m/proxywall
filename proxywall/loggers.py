@@ -16,7 +16,7 @@ _logger_methods = {
 }
 
 
-def get_logger(name, level=logging.WARN):
+def getlogger(name, level=logging.WARN):
     """
 
     :param name:

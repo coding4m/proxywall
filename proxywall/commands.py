@@ -11,7 +11,7 @@ import subprocess
 from proxywall import loggers
 from proxywall.commons import *
 
-_logger = loggers.get_logger('p.commands')
+_logger = loggers.getlogger('p.commands')
 
 
 def run(cmd, close_fds=True, use_executable=None, use_shell=False, data=None, binary_data=False):

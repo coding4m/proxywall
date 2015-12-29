@@ -4,7 +4,7 @@ import time
 
 from proxywall import loggers
 
-_logger = loggers.get_logger('p.s.supervise')
+_logger = loggers.getlogger('p.s.supervise')
 
 
 def supervise(min_seconds=None, max_seconds=None):
