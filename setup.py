@@ -18,7 +18,7 @@ setup(
         'console_scripts': [
             'proxywall-daemon = proxywall.daemon:main',
             'proxywall-agent = proxywall.agent:main',
-            'proxywall-cli = proxywall.client:main'
+            'proxywall-client = proxywall.client:main'
         ]
     }
 
