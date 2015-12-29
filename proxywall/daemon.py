@@ -8,6 +8,7 @@ import urlparse
 from proxywall import loggers
 from proxywall import monitors
 from proxywall.backend import *
+from proxywall.commons import *
 from proxywall.version import current_version
 
 __BACKENDS = {"etcd": EtcdBackend}
@@ -20,6 +21,9 @@ def _get_callargs():
 
     parser.add_argument('-backend', dest='backend', required=True,
                         help='which backend to use.')
+
+    parser.add_argument('-networks', dest='networks', required=True,
+                        help='interested container networks .')
 
     parser.add_argument('-template-source', dest='template_source', required=True,
                         help='jinja2 template file location.')
@@ -37,6 +41,11 @@ def _get_callargs():
 def main():
     callargs = _get_callargs()
 
+    networks = callargs.networks | split('[,;\s]')
+    if not networks:
+        _logger.e('networks must not be empty., daemon exit.')
+        sys.exit(1)
+
     if not os.path.exists(callargs.template_source):
         _logger.e('template file %s not exists, daemon exit.', callargs.template_source)
         sys.exit(1)
@@ -49,7 +58,7 @@ def main():
         _logger.e('backend[type=%s] not found, daemon exit.', backend_scheme)
         sys.exit(1)
 
-    backend = backend_cls(backend_url)
+    backend = backend_cls(backend_url, networks=networks)
     monitors.loop(backend,
                   prev_command=callargs.prev_command,
                   post_command=callargs.post_command,

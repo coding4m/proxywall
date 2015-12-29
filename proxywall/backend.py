@@ -128,7 +128,7 @@ class Backend(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, backend_options):
+    def __init__(self, backend_options, networks=None):
         """
 
         :param backend_options:
@@ -138,7 +138,7 @@ class Backend(object):
         backend_url = urlparse.urlparse(backend_options)
         self._url = backend_url
         self._path = backend_url.path
-        self._networks = urlparse.parse_qs(backend_url.query).get('network', [])
+        self._networks = networks if networks else []
 
     def register_all(self, name, nodes):
         """
