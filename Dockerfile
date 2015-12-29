@@ -7,5 +7,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	&& rm -rf /var/lib/apt/lists/*
 
 
-ONBUILD ADD . /var/proxywall/
-ONBUILD RUN cd /var/proxywall/ && python setup.py install
+ADD . /var/proxywall/
+RUN cd /var/proxywall/ && python setup.py install
