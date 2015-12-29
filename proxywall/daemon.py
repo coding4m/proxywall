@@ -12,7 +12,7 @@ from proxywall.version import current_version
 
 __BACKENDS = {"etcd": EtcdBackend}
 
-_logger = loggers.getlogger('d.Daemon')
+_logger = loggers.getlogger('p.Daemon')
 
 
 def _get_callargs():
@@ -38,7 +38,7 @@ def main():
     callargs = _get_callargs()
 
     if not os.path.exists(callargs.template_source):
-        print('ERROR: template file {} not exists..'.format(callargs.template_source))
+        _logger.e('template file %s not exists, daemon exit.', callargs.template_source)
         sys.exit(1)
 
     backend_url = callargs.backend
@@ -46,7 +46,7 @@ def main():
 
     backend_cls = __BACKENDS.get(backend_scheme)
     if not backend_cls:
-        print('ERROR: backend[type={}] not found.'.format(backend_scheme))
+        _logger.e('backend[type=%s] not found, daemon exit.', backend_scheme)
         sys.exit(1)
 
     backend = backend_cls(backend_url)

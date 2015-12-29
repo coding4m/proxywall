@@ -5,10 +5,13 @@ import sys
 import urlparse
 
 from proxywall import events
+from proxywall import loggers
 from proxywall.backend import *
 from proxywall.version import current_version
 
 __BACKENDS = {"etcd": EtcdBackend}
+
+_logger = loggers.getlogger('p.Agent')
 
 
 def _get_callargs():
@@ -34,7 +37,7 @@ def main():
 
     backend_cls = __BACKENDS.get(backend_scheme)
     if not backend_cls:
-        print('ERROR: backend[type={}] not found.'.format(backend_scheme))
+        _logger.e('backend[type=%s] not found, agent exit.', backend_scheme)
         sys.exit(1)
 
     backend = backend_cls(backend_url)
