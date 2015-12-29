@@ -10,7 +10,7 @@ from proxywall.backend import *
 from proxywall.commons import *
 from proxywall.errors import *
 
-_logger = loggers.getlogger('d.e.Loop')
+_logger = loggers.getlogger('p.e.Loop')
 
 
 def loop(backend,
