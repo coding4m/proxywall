@@ -215,7 +215,7 @@ class EtcdBackend(Backend):
 
     """
 
-    NODES_KEY = '@proxy-nodes'
+    NODES_KEY = '@nodes'
 
     def __init__(self, *args, **kwargs):
 
