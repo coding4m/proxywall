@@ -88,6 +88,9 @@ def _handle_container(backend, container):
         # it may be occurs error when proxy_network is a malicious word.
         proxy_network_path = '.NetworkSettings .Networks .{} .IPAddress'.format(proxy_network)
         proxy_addr = _jsonselect(container, proxy_network_path)
+        if not proxy_addr:
+            return
+
         proxy_proto = _jsonselect(container_environments, '.VPROTO')
         proxy_weight = _jsonselect(container_environments, '.VWEIGHT')
 
