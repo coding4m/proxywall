@@ -66,7 +66,11 @@ def _handle_containers(backend, containers):
 def _handle_container(backend, container):
     try:
 
-        container_environments = _jsonselect(container, '.Config .Env') \
+        container_environments = _jsonselect(container, '.Config .Env')
+        if not container_environments:
+            return
+
+        container_environments = container_environments \
                                  | collect(lambda it: it | split(r'=', maxsplit=1)) \
                                  | collect(lambda it: it | as_tuple) \
                                  | as_tuple \
@@ -82,7 +86,8 @@ def _handle_container(backend, container):
             return
 
         # it may be occurs error when proxy_network is a malicious word.
-        proxy_addr = _jsonselect(container, '.NetworkSettings .Networks .{} .IPAddress'.format(proxy_network))
+        proxy_network_path = '.NetworkSettings .Networks .{} .IPAddress'.format(proxy_network)
+        proxy_addr = _jsonselect(container, proxy_network_path)
         proxy_proto = _jsonselect(container_environments, '.VPROTO')
         proxy_weight = _jsonselect(container_environments, '.VWEIGHT')
 

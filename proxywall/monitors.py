@@ -12,70 +12,52 @@ from proxywall import template
 _logger = loggers.getlogger('p.m.Loop')
 
 
-def loop(backend,
-         prev_command=None,
-         post_command=None,
-         template_source=None,
-         template_destination=None):
+def loop(backend, prev_cmd=None, post_cmd=None, template_src=None, template_dest=None):
     """
 
     :param backend:
-    :param prev_command:
-    :param post_command:
-    :param template_source:
-    :param template_destination:
+    :param prev_cmd:
+    :param post_cmd:
+    :param template_src:
+    :param template_dest:
     :return:
     """
     supervisor.supervise(min_seconds=2, max_seconds=64)(_monitor_loop)(backend,
-                                                                       prev_command,
-                                                                       post_command,
-                                                                       template_source,
-                                                                       template_destination)
+                                                                       prev_cmd,
+                                                                       post_cmd,
+                                                                       template_src,
+                                                                       template_dest)
 
 
-def _monitor_loop(backend,
-                  prev_command, post_command,
-                  template_source, template_destination):
+def _monitor_loop(backend, prev_cmd, post_cmd, template_src, template_dest):
     # watches event first.
     _events = backend.watches(recursive=True)
-    _handle_proxy(backend,
-                  prev_command, post_command,
-                  template_source, template_destination)
+    _handle_proxy(backend, prev_cmd, post_cmd, template_src, template_dest)
 
     # signal
     for _ in _events:
-        _handle_proxy(backend,
-                      prev_command, post_command,
-                      template_source, template_destination)
+        _handle_proxy(backend, prev_cmd, post_cmd, template_src, template_dest)
 
 
-def _handle_proxy(backend,
-                  prev_command, post_command,
-                  template_source, template_destination):
+def _handle_proxy(backend, prev_cmd, post_cmd, template_src, template_dest):
     # write prev command if neccesary.
-    if prev_command:
-        commands.run(prev_command)
+    if prev_cmd:
+        commands.run(prev_cmd)
 
     proxy_details = backend.lookall()
-
-    template_dir = os.path.dirname(template_destination)
-    if not os.path.exists(template_dir):
-        os.makedirs(template_dir)
-
-    template_in = _load_template(template_source)
+    template_in = _read_src_template(template_src)
     template_out = template.render(template_in, context={'proxy_details': proxy_details})
-    with open(template_destination, 'w') as f:
-        f.write(template_out)
 
-    rc, cmdout, cmderr = commands.run(post_command)
+    _write_dest_template(template_dest, template_out)
+    rc, cmdout, cmderr = commands.run(post_cmd)
     if rc != 0:
-        _logger.w('run %s with exitcode %s', post_command, rc)
+        _logger.w('run %s with exitcode %s.', post_cmd, rc)
 
 
-def _load_template(template_source):
+def _read_src_template(template_src):
     template_in = ''
 
-    with open(template_source, 'r') as f:
+    with open(template_src, 'r') as f:
         while True:
             template_data = f.read(1024)
             if not template_data:
@@ -83,3 +65,12 @@ def _load_template(template_source):
             template_in += template_data
 
     return template_in
+
+
+def _write_dest_template(template_dest, template_out):
+    template_dir = os.path.dirname(template_dest)
+    if not os.path.exists(template_dir):
+        os.makedirs(template_dir)
+
+    with open(template_dest, 'w') as f:
+        f.write(template_out)

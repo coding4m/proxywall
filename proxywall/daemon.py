@@ -25,14 +25,14 @@ def _get_callargs():
     parser.add_argument('-networks', dest='networks', required=True,
                         help='interested container networks .')
 
-    parser.add_argument('-template-source', dest='template_source', required=True,
+    parser.add_argument('-template-src', dest='template_src', required=True,
                         help='jinja2 template file location.')
-    parser.add_argument('-template-destination', dest='template_destination', required=True,
+    parser.add_argument('-template-dest', dest='template_dest', required=True,
                         help='out template file location.')
 
-    parser.add_argument('-prev-command', dest='prev_command',
+    parser.add_argument('-prev-cmd', dest='prev_cmd',
                         help='command to run before generate template.')
-    parser.add_argument('-post-command', dest='post_command', required=True,
+    parser.add_argument('-post-cmd', dest='post_cmd', required=True,
                         help='command to run after generate template.')
 
     return parser.parse_args()
@@ -60,10 +60,10 @@ def main():
 
     backend = backend_cls(backend_url, networks=networks)
     monitors.loop(backend,
-                  prev_command=callargs.prev_command,
-                  post_command=callargs.post_command,
-                  template_source=callargs.template_source,
-                  template_destination=callargs.template_destination)
+                  prev_cmd=callargs.prev_cmd,
+                  post_cmd=callargs.post_cmd,
+                  template_src=callargs.template_src,
+                  template_dest=callargs.template_dest)
 
 
 if __name__ == '__main__':
