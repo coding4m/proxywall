@@ -52,7 +52,6 @@ def main():
         sys.exit(1)
 
     backend_scheme = urlparse.urlparse(backend_url).scheme
-
     backend_cls = __BACKENDS.get(backend_scheme)
     if not backend_cls:
         _logger.e('backend[type=%s] not found. client exit', backend_scheme)

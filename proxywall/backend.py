@@ -41,8 +41,8 @@ class ProxyNode(object):
         if not isinstance(other, ProxyNode):
             return False
 
-        return (self._addr, self._port, self._proto,) == \
-               (other._addr, other._port, other._proto,)
+        return (self._addr, self._port,) == \
+               (other._addr, other._port,)
 
     def __ne__(self, other):
         if self is other:
@@ -51,11 +51,11 @@ class ProxyNode(object):
         if not isinstance(other, ProxyNode):
             return True
 
-        return (self._addr, self._port, self._proto,) == \
-               (other._addr, other._port, other._proto,)
+        return (self._addr, self._port,) == \
+               (other._addr, other._port,)
 
     def __hash__(self):
-        return hash((self._addr, self._port, self._proto,))
+        return hash((self._addr, self._port,))
 
     @property
     def uuid(self):
