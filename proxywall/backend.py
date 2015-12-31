@@ -32,7 +32,7 @@ class ProxyNode(object):
         self._port = port
         self._proto = proto if proto else ProxyNode.DEFAULT_PROTO
         self._network = network
-        self._weight = weight if weight else -1
+        self._weight = weight if weight and weight >= 0 else 1
 
     def __eq__(self, other):
         if self is other:
