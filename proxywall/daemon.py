@@ -5,6 +5,7 @@ import os
 import sys
 import urlparse
 
+from proxywall import constants
 from proxywall import loggers
 from proxywall import monitors
 from proxywall.backend import *
@@ -19,20 +20,19 @@ _logger = loggers.getlogger('p.Daemon')
 def _get_callargs():
     parser = argparse.ArgumentParser(prog='proxywall-daemon', description=current_version.desc)
 
-    parser.add_argument('-backend', dest='backend', required=True,
+    parser.add_argument('-backend', dest='backend', default=os.getenv(constants.BACKEND_ENV),
                         help='which backend to use.')
+    parser.add_argument('-networks', dest='networks', default=os.getenv(constants.NETWORKS_ENV),
+                        help='interested container networks.')
 
-    parser.add_argument('-networks', dest='networks', required=True,
-                        help='interested container networks .')
-
-    parser.add_argument('-template-src', dest='template_src', required=True,
-                        help='jinja2 template file location.')
-    parser.add_argument('-template-dest', dest='template_dest', required=True,
+    parser.add_argument('-template-src', dest='template_src', default=os.getenv(constants.TEMPLATE_SRC_ENV),
+                        help='jinja2 src template file location.')
+    parser.add_argument('-template-dest', dest='template_dest', default=os.getenv(constants.TEMPLATE_DEST_ENV),
                         help='out template file location.')
 
-    parser.add_argument('-prev-cmd', dest='prev_cmd',
+    parser.add_argument('-prev-cmd', dest='prev_cmd', default=os.getenv(constants.PREV_CMD_ENV),
                         help='command to run before generate template.')
-    parser.add_argument('-post-cmd', dest='post_cmd', required=True,
+    parser.add_argument('-post-cmd', dest='post_cmd', default=os.getenv(constants.POST_CMD_ENV),
                         help='command to run after generate template.')
 
     return parser.parse_args()
@@ -41,18 +41,33 @@ def _get_callargs():
 def main():
     callargs = _get_callargs()
 
-    networks = callargs.networks | split('[,;\s]')
-    if not networks:
-        _logger.e('networks must not be empty., daemon exit.')
+    if not callargs.template_src:
+        _logger.e('%s env not set, use -template-src instead, daemon exit.', constants.TEMPLATE_SRC_ENV)
         sys.exit(1)
 
-    if not os.path.exists(callargs.template_source):
-        _logger.e('template file %s not exists, daemon exit.', callargs.template_source)
+    if not os.path.isfile(callargs.template_src):
+        _logger.e('%s is not a file, daemon exit.', callargs.template_src)
+        sys.exit(1)
+
+    if not callargs.template_dest:
+        _logger.e('%s env not set, use -template-dest instead, daemon exit.', constants.TEMPLATE_DEST_ENV)
+        sys.exit(1)
+
+    if not callargs.post_cmd:
+        _logger.e('%s env not set, use -post-cmd instead, daemon exit.', constants.POST_CMD_ENV)
+        sys.exit(1)
+
+    networks = callargs.networks | split('[,;\s]') if callargs.networks else callargs.networks
+    if not networks:
+        _logger.e('%s env not set, use -networks instead, daemon exit.', constants.NETWORKS_ENV)
         sys.exit(1)
 
     backend_url = callargs.backend
-    backend_scheme = urlparse.urlparse(backend_url).scheme
+    if not backend_url:
+        _logger.e('%s env not set, use -backend instead, daemon exit.', constants.BACKEND_ENV)
+        sys.exit(1)
 
+    backend_scheme = urlparse.urlparse(backend_url).scheme
     backend_cls = __BACKENDS.get(backend_scheme)
     if not backend_cls:
         _logger.e('backend[type=%s] not found, daemon exit.', backend_scheme)

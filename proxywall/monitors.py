@@ -42,13 +42,17 @@ def _monitor_loop(backend, prev_cmd, post_cmd, template_src, template_dest):
 def _handle_proxy(backend, prev_cmd, post_cmd, template_src, template_dest):
     # write prev command if neccesary.
     if prev_cmd:
+        _logger.w('run [prev_cmd=%s].', template_dest, prev_cmd)
         commands.run(prev_cmd)
 
     proxy_details = backend.lookall()
     template_in = _read_src_template(template_src)
     template_out = template.render(template_in, context={'proxy_details': proxy_details})
 
+    _logger.w('write template to %s.', template_dest)
     _write_dest_template(template_dest, template_out)
+
+    _logger.w('run [post_cmd=%s].', post_cmd)
     rc, cmdout, cmderr = commands.run(post_cmd)
     if rc != 0:
         _logger.w('run %s with exitcode %s.', post_cmd, rc)
