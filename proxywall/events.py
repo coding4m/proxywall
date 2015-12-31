@@ -85,6 +85,11 @@ def _handle_container(backend, container):
         if not proxy_network:
             return
 
+        container_id = _jsonselect(container, '.Id')
+        container_status = _jsonselect(container, '.State .Status')
+        if container_status in ['paused', 'exited']:
+            _unregister_proxy(backend, proxy_host, ProxyNode(uuid=container_id))
+
         # it may be occurs error when proxy_network is a malicious word.
         proxy_addr_path = '.NetworkSettings .Networks .{} .IPAddress'.format(proxy_network)
         proxy_addr = _jsonselect(container, proxy_addr_path)
@@ -94,16 +99,10 @@ def _handle_container(backend, container):
         proxy_proto = _jsonselect(container_environments, '.VPROTO')
         proxy_weight = _jsonselect(container_environments, '.VWEIGHT')
 
-        container_id = _jsonselect(container, '.Id')
-        container_status = _jsonselect(container, '.State .Status')
-
         proxy_node = ProxyNode(uuid=container_id, addr=proxy_addr, port=proxy_port,
                                proto=proxy_proto, network=proxy_network, weight=proxy_weight)
 
-        if container_status not in ['paused', 'exited']:
-            _register_proxy(backend, proxy_host, proxy_node)
-        else:
-            _unregister_proxy(backend, proxy_host, proxy_node)
+        _register_proxy(backend, proxy_host, proxy_node)
 
     except BackendValueError:
         _logger.ex('handle container occurs BackendValueError, just ignore it.')
