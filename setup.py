@@ -17,8 +17,7 @@ setup(
     entry_points={
         'console_scripts': [
             'proxywall-daemon = proxywall.daemon:main',
-            'proxywall-agent = proxywall.agent:main',
-            'proxywall-client = proxywall.client:main'
+            'proxywall-agent = proxywall.agent:main'
         ]
     }
 
