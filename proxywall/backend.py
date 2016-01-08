@@ -342,8 +342,10 @@ class EtcdBackend(Backend):
             results[name] = [node]
 
     def watches(self, name=None, timeout=None, recursive=True):
+
         etcd_key = self._etcdkey(name, with_nodes_key=False) if name else self._path
         etcd_results = self._client.eternal_watch(etcd_key, recursive=recursive)
+
         for etcd_result in etcd_results:
             if etcd_result.action not in ['set']:
                 yield self._to_proxydetails(etcd_result)
