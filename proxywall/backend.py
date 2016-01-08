@@ -45,14 +45,7 @@ class ProxyNode(object):
                (other._addr, other._port,)
 
     def __ne__(self, other):
-        if self is other:
-            return False
-
-        if not isinstance(other, ProxyNode):
-            return True
-
-        return (self._addr, self._port,) == \
-               (other._addr, other._port,)
+        return not self.__eq__(other)
 
     def __hash__(self):
         return hash((self._addr, self._port,))
@@ -173,20 +166,22 @@ class Backend(object):
         pass
 
     @abc.abstractmethod
-    def lookall(self):
+    def lookall(self, name=None):
         """
 
+        :param name:
         :return:
         """
         pass
 
     @abc.abstractmethod
-    def watches(self, name=None, timeout=None, recursive=None):
+    def watches(self, name=None, timeout=None, recursive=True, expire_only=False):
         """
 
         :param name:
         :param timeout:
         :param recursive:
+        :param expire_only:
         :return:
         """
         pass
@@ -208,13 +203,17 @@ class EtcdBackend(Backend):
         self._client = etcd.Client(host=host_tuple, allow_reconnect=True)
         self._logger = loggers.getlogger('p.b.EtcdBackend')
 
-    def _etcdkey(self, name, uuid=None):
+    def _etcdkey(self, name, uuid=None, with_nodes_key=True):
 
         if not uuid:
             uuid = ''
 
+        nodes_key = EtcdBackend.NODES_KEY
+        if not with_nodes_key:
+            nodes_key = ''
+
         nameparts = (name | split(r'\.') | reverse | as_list)
-        keyparts = [self._path] + nameparts + [EtcdBackend.NODES_KEY, uuid]
+        keyparts = [self._path] + nameparts + [nodes_key, uuid]
         return keyparts | join('/') | replace(r'/+', '/')
 
     def _rawkey(self, etcd_key):
@@ -297,7 +296,7 @@ class EtcdBackend(Backend):
 
     def lookall(self, name=None):
 
-        etcd_key = self._path
+        etcd_key = self._etcdkey(name, with_nodes_key=False) if name else self._path
         try:
 
             etcd_result = self._client.read(etcd_key, recursive=True)
@@ -338,13 +337,16 @@ class EtcdBackend(Backend):
         if not self._isavailable_proxynode(node):
             return
 
-        if results.get(name):
+        if name in results:
             results[name].append(node)
         else:
             results[name] = [node]
 
-    def watches(self, name=None, timeout=None, recursive=None):
-        etcd_key = self._etcdkey(name) if name else self._path
+    def watches(self, name=None, timeout=None, recursive=True, expire_only=False):
+        etcd_key = self._etcdkey(name, with_nodes_key=False) if name else self._path
         etcd_results = self._client.eternal_watch(etcd_key, recursive=recursive)
         for etcd_result in etcd_results:
+            if expire_only and etcd_result.action not in ['expire']:
+                continue
+
             yield self._to_proxydetails(etcd_result)

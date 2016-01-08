@@ -4,7 +4,6 @@ import argparse
 import os
 import sys
 import urlparse
-
 from proxywall import constants
 from proxywall import loggers
 from proxywall import monitors
@@ -35,7 +34,13 @@ def _get_callargs():
     parser.add_argument('-post-cmd', dest='post_cmd', default=os.getenv(constants.POST_CMD_ENV),
                         help='command to run after generate template.')
 
-    return parser.parse_args()
+    return parser.parse_args(
+        ['-backend', 'etcd://172.16.1.22:2379,172.16.1.23:2379,172.16.1.24:2379/workplus.io',
+         '-networks', 'overlay0',
+         '-template-src', '/Users/coding4m/project/test.tpl',
+         '-template-dest', '/Users/coding4m/project/test.conf',
+         '-post-cmd', 'ls']
+    )
 
 
 def main():
