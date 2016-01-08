@@ -175,13 +175,12 @@ class Backend(object):
         pass
 
     @abc.abstractmethod
-    def watches(self, name=None, timeout=None, recursive=True, expire_only=False):
+    def watches(self, name=None, timeout=None, recursive=True):
         """
 
         :param name:
         :param timeout:
         :param recursive:
-        :param expire_only:
         :return:
         """
         pass
@@ -342,11 +341,13 @@ class EtcdBackend(Backend):
         else:
             results[name] = [node]
 
-    def watches(self, name=None, timeout=None, recursive=True, expire_only=False):
+    def watches(self, name=None, timeout=None, recursive=True):
         etcd_key = self._etcdkey(name, with_nodes_key=False) if name else self._path
         etcd_results = self._client.eternal_watch(etcd_key, recursive=recursive)
         for etcd_result in etcd_results:
-            if expire_only and etcd_result.action not in ['expire']:
-                continue
-
-            yield self._to_proxydetails(etcd_result)
+            if etcd_result.action not in ['set']:
+                yield self._to_proxydetails(etcd_result)
+            elif not hasattr(etcd_result, '_prev_node'):
+                yield self._to_proxydetails(etcd_result)
+            elif not etcd_result.value == etcd_result._prev_node.value:
+                yield self._to_proxydetails(etcd_result)

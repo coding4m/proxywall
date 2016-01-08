@@ -31,7 +31,7 @@ def loop(backend, prev_cmd=None, post_cmd=None, template_src=None, template_dest
 
 def _monitor_loop(backend, prev_cmd, post_cmd, template_src, template_dest):
     # watches event first.
-    _events = backend.watches(recursive=True, expire_only=True)
+    _events = backend.watches(recursive=True)
     _handle_proxy(backend, prev_cmd, post_cmd, template_src, template_dest)
 
     # signal
