@@ -70,15 +70,21 @@ def _heartbeat_container(backend, container):
                                  | as_tuple \
                                  | as_dict
 
-        proxy_port = _jsonselect(container_environments, '.VPORT')
         proxy_domain = _jsonselect(container_environments, '.VHOST')
-        proxy_network = _jsonselect(container_environments, '.VNETWORK')
-        if not proxy_domain or not proxy_port or not proxy_network:
+        proxy_port = _jsonselect(container_environments, '.VPORT')
+
+        if not proxy_domain or not proxy_port:
             return
 
+        proxy_addr = _jsonselect(container_environments, '.VADDR')
+        proxy_network = _jsonselect(container_environments, '.VNETWORK')
+
         # it may be occurs error when proxy_network is a malicious word.
-        proxy_addr_selector = '.NetworkSettings .Networks .{} .IPAddress'.format(proxy_network)
-        proxy_addr = _jsonselect(container, proxy_addr_selector)
+        if proxy_network:
+            proxy_addr_selector = \
+                '.NetworkSettings .Networks .{} .IPAddress'.format(proxy_network)
+            proxy_addr = _jsonselect(container, proxy_addr_selector)
+
         if not proxy_addr:
             return
 

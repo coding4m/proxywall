@@ -132,7 +132,7 @@ class Backend(object):
 
         backend_url = urlparse.urlparse(backend_options)
         self._url = backend_url
-        self._path = backend_url.path
+        self._path = backend_url.path if backend_url.path else '/proxywall'
         self._networks = networks if networks else []
 
     @abc.abstractmethod
@@ -308,7 +308,8 @@ class EtcdBackend(Backend):
             raise BackendError
 
     def _isavailable_proxynode(self, node):
-        if not self._networks:
+
+        if not node.network:
             return True
 
         return node.network in self._networks
