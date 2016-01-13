@@ -86,6 +86,9 @@ def _heartbeat_container(backend, container):
             proxy_addr = _jsonselect(container, proxy_addr_selector)
 
         if not proxy_addr:
+            _logger.w('''ignore tty container[id=%s, vhost=%s] because addrs not found.''',
+                      container_id,
+                      proxy_domain)
             return
 
         proxy_proto = _jsonselect(container_environments, '.VPROTO')
