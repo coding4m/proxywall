@@ -132,7 +132,11 @@ class Backend(object):
 
         backend_url = urlparse.urlparse(backend_options)
         self._url = backend_url
-        self._path = backend_url.path if backend_url.path else '/proxywall'
+        if not backend_url.path or backend_url.path == '/':
+            self._path = '/proxywall'
+        else:
+            self._path = backend_url.path
+
         self._networks = networks if networks else []
 
     @abc.abstractmethod
