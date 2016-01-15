@@ -1,3 +1,5 @@
+import os
+
 from jinja2 import Template
 
 
@@ -8,4 +10,7 @@ def render(source, context):
     :param context:
     :return:
     """
-    return Template(source).render(context)
+
+    temp = Template(source)
+    temp.env.filters['exists'] = os.path.exists
+    return temp.render(context)
