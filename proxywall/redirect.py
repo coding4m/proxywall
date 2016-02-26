@@ -127,6 +127,7 @@ def main():
     redirect_rules = callargs.redirect_rules \
                      | split(';') \
                      | collect(lambda it: it | split('=') | as_tuple) \
+                     | select(lambda it: len(it) == 2) \
                      | as_list
 
     redirect_dispatcher = RedirectDispatcher(default_redirect_url, redirect_rules)
