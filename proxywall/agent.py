@@ -47,13 +47,13 @@ def main():
 
     backend_url = callargs.backend
     if not backend_url:
-        _logger.e('%s env not set, use -backend instead, agent exit.', constants.BACKEND_ENV)
+        _logger.e('%s env not set, use -backend instead, program exit.', constants.BACKEND_ENV)
         sys.exit(1)
 
     backend_scheme = urlparse.urlparse(backend_url).scheme
     backend_cls = __BACKENDS.get(backend_scheme)
     if not backend_cls:
-        _logger.e('backend[type=%s] not found, agent exit.', backend_scheme)
+        _logger.e('backend[type=%s] not found, program exit.', backend_scheme)
         sys.exit(1)
 
     backend = backend_cls(backend_url)

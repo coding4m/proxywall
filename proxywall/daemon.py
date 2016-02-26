@@ -42,7 +42,7 @@ def main():
     callargs = _get_callargs()
 
     if not callargs.template_src:
-        _logger.e('%s env not set, use -template-src instead, daemon exit.', constants.TEMPLATE_SRC_ENV)
+        _logger.e('%s env not set, use -template-src instead, program exit.', constants.TEMPLATE_SRC_ENV)
         sys.exit(1)
 
     if not os.path.isfile(callargs.template_src):
@@ -50,27 +50,27 @@ def main():
         sys.exit(1)
 
     if not callargs.template_dest:
-        _logger.e('%s env not set, use -template-dest instead, daemon exit.', constants.TEMPLATE_DEST_ENV)
+        _logger.e('%s env not set, use -template-dest instead, program exit.', constants.TEMPLATE_DEST_ENV)
         sys.exit(1)
 
     if not callargs.post_cmd:
-        _logger.e('%s env not set, use -post-cmd instead, daemon exit.', constants.POST_CMD_ENV)
+        _logger.e('%s env not set, use -post-cmd instead, program exit.', constants.POST_CMD_ENV)
         sys.exit(1)
 
     networks = callargs.networks | split('[,;\s]') if callargs.networks else callargs.networks
     if not networks:
-        _logger.e('%s env not set, use -networks instead, daemon exit.', constants.NETWORKS_ENV)
+        _logger.e('%s env not set, use -networks instead, program exit.', constants.NETWORKS_ENV)
         sys.exit(1)
 
     backend_url = callargs.backend
     if not backend_url:
-        _logger.e('%s env not set, use -backend instead, daemon exit.', constants.BACKEND_ENV)
+        _logger.e('%s env not set, use -backend instead, program exit.', constants.BACKEND_ENV)
         sys.exit(1)
 
     backend_scheme = urlparse.urlparse(backend_url).scheme
     backend_cls = __BACKENDS.get(backend_scheme)
     if not backend_cls:
-        _logger.e('backend[type=%s] not found, daemon exit.', backend_scheme)
+        _logger.e('backend[type=%s] not found, program exit.', backend_scheme)
         sys.exit(1)
 
     backend = backend_cls(backend_url, networks=networks)

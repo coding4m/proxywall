@@ -12,12 +12,14 @@ setup(
     author="coding4m",
     author_email="coding4m@gmail.com",
 
-    install_requires=['python-etcd>=0.4.3', 'docker-py>=1.6.0', 'jsonselect>=0.2.3', 'jinja2>=2.8'],
+    install_requires=['python-etcd>=0.4.3', 'twisted>=15.5.0', 'docker-py>=1.6.0', 'jsonselect>=0.2.3', 'jinja2>=2.8'],
 
     entry_points={
         'console_scripts': [
             'proxywall-daemon = proxywall.daemon:main',
-            'proxywall-agent = proxywall.agent:main'
+            'proxywall-agent = proxywall.agent:main',
+            'proxywall-forward = proxywall.forward:main',
+            'proxywall-redirect = proxywall.redirect:main'
         ]
     }
 
