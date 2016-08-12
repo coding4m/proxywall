@@ -92,11 +92,13 @@ def _heartbeat_container(backend, container):
             return
 
         proxy_proto = _jsonselect(container_environments, '.VPROTO')
+        proxy_redirect = _jsonselect(container_environments, '.VREDIRECT')
         proxy_weight = _jsonselect(container_environments, '.VWEIGHT')
 
         _logger.d('heartbeat container[id=%s, vhost=%s] to backend.', container_id, proxy_domain)
         proxy_node = ProxyNode(uuid=container_id, addr=proxy_addr, port=proxy_port,
-                               proto=proxy_proto, network=proxy_network, weight=proxy_weight)
+                               proto=proxy_proto, redirect=proxy_redirect, network=proxy_network,
+                               weight=proxy_weight)
 
         backend.register(proxy_domain, proxy_node, ttl=60)
 

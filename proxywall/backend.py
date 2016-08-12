@@ -22,7 +22,7 @@ class ProxyNode(object):
 
     def __init__(self,
                  uuid=None, addr=None, port=None,
-                 proto=None, network=None, weight=None):
+                 proto=None, redirect=None, network=None, weight=None):
 
         if proto and proto not in ProxyNode.ALLOW_PROTOS:
             raise ValueError('')
@@ -31,6 +31,7 @@ class ProxyNode(object):
         self._addr = addr
         self._port = port
         self._proto = proto if proto else ProxyNode.DEFAULT_PROTO
+        self._redirect = redirect
         self._network = network
         self._weight = weight if weight and weight >= 0 else 1
 
@@ -63,6 +64,10 @@ class ProxyNode(object):
         return self._port
 
     @property
+    def redirect(self):
+        return self._redirect
+
+    @property
     def proto(self):
         return self._proto
 
@@ -76,7 +81,8 @@ class ProxyNode(object):
 
     def to_dict(self):
         return {'uuid': self._uuid, 'addr': self._addr, 'port': self._port,
-                'proto': self._proto, 'network': self._network, 'weight': self._weight}
+                'proto': self._proto, 'redirect': self._proto, 'network': self._network,
+                'weight': self._weight}
 
     @staticmethod
     def from_dict(dict_obj):
@@ -84,6 +90,7 @@ class ProxyNode(object):
                          addr=jsonselect.select('.addr', dict_obj),
                          port=jsonselect.select('.port', dict_obj),
                          proto=jsonselect.select('.proto', dict_obj),
+                         redirect=jsonselect.select('.redirect', dict_obj),
                          network=jsonselect.select('.network', dict_obj),
                          weight=jsonselect.select('.weight', dict_obj))
 
