@@ -81,7 +81,7 @@ class ProxyNode(object):
 
     def to_dict(self):
         return {'uuid': self._uuid, 'addr': self._addr, 'port': self._port,
-                'proto': self._proto, 'redirect': self._proto, 'network': self._network,
+                'proto': self._proto, 'redirect': self._redirect, 'network': self._network,
                 'weight': self._weight}
 
     @staticmethod
