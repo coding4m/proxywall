@@ -22,14 +22,14 @@ def loop(backend, prev_cmd=None, post_cmd=None, template_src=None, template_dest
     :param template_dest:
     :return:
     """
-    supervisor.supervise(min_seconds=2, max_seconds=64)(_monitor_loop)(backend,
-                                                                       prev_cmd,
-                                                                       post_cmd,
-                                                                       template_src,
-                                                                       template_dest)
+    supervisor.supervise(min_seconds=2, max_seconds=64)(_loop_proxy)(backend,
+                                                                     prev_cmd,
+                                                                     post_cmd,
+                                                                     template_src,
+                                                                     template_dest)
 
 
-def _monitor_loop(backend, prev_cmd, post_cmd, template_src, template_dest):
+def _loop_proxy(backend, prev_cmd, post_cmd, template_src, template_dest):
     # watches event first.
     _events = backend.watches(recursive=True)
     _handle_proxy(backend, prev_cmd, post_cmd, template_src, template_dest)

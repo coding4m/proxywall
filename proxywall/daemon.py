@@ -12,7 +12,7 @@ from proxywall.backend import *
 from proxywall.commons import *
 from proxywall.version import current_version
 
-__BACKENDS = {"etcd": EtcdBackend}
+__BACKEND_TYPES = {"etcd": EtcdBackend}
 
 _logger = loggers.getlogger('p.Daemon')
 
@@ -67,10 +67,10 @@ def main():
         _logger.e('%s env not set, use -backend instead, program exit.', constants.BACKEND_ENV)
         sys.exit(1)
 
-    backend_scheme = urlparse.urlparse(backend_url).scheme
-    backend_cls = __BACKENDS.get(backend_scheme)
+    backend_type = urlparse.urlparse(backend_url).scheme | lowcase
+    backend_cls = __BACKEND_TYPES.get(backend_type)
     if not backend_cls:
-        _logger.e('backend[type=%s] not found, program exit.', backend_scheme)
+        _logger.e('backend[type=%s] not found, program exit.', backend_type)
         sys.exit(1)
 
     backend = backend_cls(backend_url, networks=networks)
