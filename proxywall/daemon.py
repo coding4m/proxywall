@@ -25,6 +25,11 @@ def _get_callargs():
     parser.add_argument('-networks', dest='networks', default=os.getenv(constants.NETWORKS_ENV),
                         help='interested container networks.')
 
+    parser.add_argument('-http-port', dest='http_port', default=os.getenv(constants.HTTP_PORT_ENV),
+                        help='which http port to listen.')
+    parser.add_argument('-https-port', dest='https_port', default=os.getenv(constants.HTTPS_PORT_ENV),
+                        help='which https port to listen.')
+
     parser.add_argument('-template-src', dest='template_src', default=os.getenv(constants.TEMPLATE_SRC_ENV),
                         help='jinja2 src template file location.')
     parser.add_argument('-template-dest', dest='template_dest', default=os.getenv(constants.TEMPLATE_DEST_ENV),
@@ -75,6 +80,8 @@ def main():
 
     backend = backend_cls(backend_url, networks=networks)
     monitors.loop(backend,
+                  http_port=callargs.http_port,
+                  https_port=callargs.https_port,
                   prev_cmd=callargs.prev_cmd,
                   post_cmd=callargs.post_cmd,
                   template_src=callargs.template_src,

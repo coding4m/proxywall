@@ -12,10 +12,19 @@ from proxywall import template
 _logger = loggers.getlogger('p.m.Loop')
 
 
-def loop(backend, prev_cmd=None, post_cmd=None, template_src=None, template_dest=None):
+def loop(backend,
+         http_port=None,
+         https_port=None,
+         prev_cmd=None,
+         post_cmd=None,
+         template_src=None,
+         template_dest=None):
+
     """
 
     :param backend:
+    :param http_port:
+    :param https_port:
     :param prev_cmd:
     :param post_cmd:
     :param template_src:
@@ -23,23 +32,25 @@ def loop(backend, prev_cmd=None, post_cmd=None, template_src=None, template_dest
     :return:
     """
     supervisor.supervise(min_seconds=2, max_seconds=64)(_loop_proxy)(backend,
+                                                                     http_port,
+                                                                     https_port,
                                                                      prev_cmd,
                                                                      post_cmd,
                                                                      template_src,
                                                                      template_dest)
 
 
-def _loop_proxy(backend, prev_cmd, post_cmd, template_src, template_dest):
+def _loop_proxy(backend, http_port, https_port, prev_cmd, post_cmd, template_src, template_dest):
     # watches event first.
     _events = backend.watches(recursive=True)
-    _handle_proxy(backend, prev_cmd, post_cmd, template_src, template_dest)
+    _handle_proxy(backend, http_port, https_port, prev_cmd, post_cmd, template_src, template_dest)
 
     # signal
     for _ in _events:
-        _handle_proxy(backend, prev_cmd, post_cmd, template_src, template_dest)
+        _handle_proxy(backend, http_port, https_port, prev_cmd, post_cmd, template_src, template_dest)
 
 
-def _handle_proxy(backend, prev_cmd, post_cmd, template_src, template_dest):
+def _handle_proxy(backend, http_port, https_port, prev_cmd, post_cmd, template_src, template_dest):
     # write prev command if neccesary.
     if prev_cmd:
         _logger.w('run [prev_cmd=%s].', template_dest, prev_cmd)
@@ -47,7 +58,14 @@ def _handle_proxy(backend, prev_cmd, post_cmd, template_src, template_dest):
 
     proxy_details = backend.lookall()
     template_in = _read_src_template(template_src)
-    template_out = template.render(template_in, context={'proxy_details': proxy_details})
+    template_out = template.render(
+        template_in,
+        context={
+            'proxy_details': proxy_details,
+            'HTTP_PORT': http_port or 80,
+            'HTTPS_PORT': https_port or 443
+        }
+    )
 
     _logger.w('write template to %s.', template_dest)
     _write_dest_template(template_dest, template_out)
